@@ -1,23 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Icon from '@/components/ui/icon';
 import { attractions } from '@/data/attractions';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+const MapView = lazy(() => import('@/components/MapView'));
 
 export default function MapPage() {
   const [selectedAttraction, setSelectedAttraction] = useState<string | null>(null);
-  const center: [number, number] = [62.5, 33.0];
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadMap = async () => {
+      await import('leaflet/dist/leaflet.css');
+      const L = (await import('leaflet')).default;
+      
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      });
+      
+      setMapLoaded(true);
+    };
+    
+    loadMap();
+  }, []);
 
   return (
     <div className="h-screen flex flex-col">
@@ -46,40 +56,25 @@ export default function MapPage() {
       </header>
 
       <div className="flex-1 relative">
-        <MapContainer 
-          center={center} 
-          zoom={7} 
-          className="h-full w-full"
-          scrollWheelZoom={true}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {attractions.map((attraction) => (
-            <Marker 
-              key={attraction.id} 
-              position={attraction.coordinates}
-              eventHandlers={{
-                click: () => setSelectedAttraction(attraction.id),
-              }}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h3 className="font-bold text-lg mb-2">{attraction.name}</h3>
-                  <p className="text-sm text-muted-foreground mb-3">{attraction.description}</p>
-                  <Link 
-                    to={`/attraction/${attraction.id}`}
-                    className="text-primary hover:underline text-sm font-medium"
-                  >
-                    Подробнее →
-                  </Link>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-        </MapContainer>
+        {mapLoaded ? (
+          <Suspense fallback={
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <Icon name="Loader2" className="animate-spin mx-auto mb-4 text-primary" size={48} />
+                <p className="text-muted-foreground">Загрузка карты...</p>
+              </div>
+            </div>
+          }>
+            <MapView selectedAttraction={selectedAttraction} setSelectedAttraction={setSelectedAttraction} />
+          </Suspense>
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <Icon name="Loader2" className="animate-spin mx-auto mb-4 text-primary" size={48} />
+              <p className="text-muted-foreground">Загрузка карты...</p>
+            </div>
+          </div>
+        )}
 
         {selectedAttraction && (
           <Card className="absolute bottom-4 left-4 right-4 md:left-auto md:w-96 z-[1000]">
