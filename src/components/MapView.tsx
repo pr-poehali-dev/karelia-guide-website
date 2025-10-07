@@ -20,8 +20,9 @@ export default function MapView({ selectedAttraction, setSelectedAttraction }: M
     const map = L.map(mapRef.current).setView([62.5, 33.0], 7);
     mapInstanceRef.current = map;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      maxZoom: 18,
     }).addTo(map);
 
     const icon = L.icon({
@@ -38,24 +39,43 @@ export default function MapView({ selectedAttraction, setSelectedAttraction }: M
       const marker = L.marker(attraction.coordinates, { icon }).addTo(map);
       
       const popupContent = `
-        <div style="padding: 8px; min-width: 200px;">
-          <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 8px;">${attraction.name}</h3>
-          <p style="font-size: 0.875rem; color: #666; margin-bottom: 12px;">${attraction.description}</p>
-          <a 
-            href="/attraction/${attraction.id}" 
-            style="color: hsl(222.2 47.4% 11.2%); font-size: 0.875rem; font-weight: 500; text-decoration: none;"
-            onmouseover="this.style.textDecoration='underline'"
-            onmouseout="this.style.textDecoration='none'"
-          >
-            Подробнее →
-          </a>
+        <div style="padding: 0; min-width: 280px; max-width: 320px;">
+          <img 
+            src="${attraction.image}" 
+            alt="${attraction.name}"
+            style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px 8px 0 0; display: block;"
+          />
+          <div style="padding: 12px;">
+            <h3 style="font-weight: bold; font-size: 1.125rem; margin-bottom: 8px; color: #1a1a1a;">${attraction.name}</h3>
+            <p style="font-size: 0.875rem; color: #666; margin-bottom: 12px; line-height: 1.4;">${attraction.description}</p>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="background: #f0f0f0; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; color: #555;">
+                ${attraction.category}
+              </span>
+            </div>
+            <a 
+              href="/attraction/${attraction.id}" 
+              style="color: hsl(222.2 47.4% 11.2%); font-size: 0.875rem; font-weight: 600; text-decoration: none; display: inline-block;"
+              onmouseover="this.style.textDecoration='underline'"
+              onmouseout="this.style.textDecoration='none'"
+            >
+              Подробнее →
+            </a>
+          </div>
         </div>
       `;
       
-      marker.bindPopup(popupContent);
+      marker.bindPopup(popupContent, { 
+        maxWidth: 320,
+        className: 'custom-popup'
+      });
       
       marker.on('click', () => {
         setSelectedAttraction(attraction.id);
+      });
+      
+      marker.on('mouseover', () => {
+        marker.openPopup();
       });
     });
 
